@@ -41,7 +41,7 @@ registry.get('hvac').controller.handle({ key: 'start' })
 
 // Publish all events onto node-red flow
 registry.events$.subscribe((deviceEvent: AggregateEvent) => {
-    axios.post(`${env.NODE_RED}/device-events`, deviceEvent)
+    axios.post(`${env.PUBLISH_COMMANDS_ENDPOINT}`, deviceEvent)
         .then(reply => null)
         .catch(error => console.log('could not dispatch to node-red'))
 })
