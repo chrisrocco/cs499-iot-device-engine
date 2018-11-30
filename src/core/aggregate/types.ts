@@ -3,7 +3,7 @@ import {BehaviorSubject, Subject} from "rxjs";
 
 export interface Event {
     key: string
-    payload?: any
+    payload: any
     time?: string | number
 }
 

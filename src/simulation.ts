@@ -8,6 +8,8 @@ import {makeRegistry} from "./core/registry/Registry";
 import {IOTDeviceRegistry, IOTDevice, DeviceCreatedEvent} from "./core/registry/types";
 import {stateTable} from "./core/visualization/visualize";
 import {makeLight} from "./devices/light.device";
+import {makeOvenDevice} from "./devices/oven";
+import {makeSinkDevice} from "./devices/sink.device";
 const dotenv = require('dotenv')
 const axios = require('axios')
 const clear = require('clear')
@@ -25,12 +27,14 @@ let registry: IOTDeviceRegistry = makeRegistry([
     makeHvacDevice('hvac', {title: 'HVAC'}),
     makeLight('basement_light', {title: 'Basement Light'}),
     makeLight('kitchen_light', {title: 'Kitchen Light'}),
+    makeSinkDevice('kitchen_sink', {title: 'Kitchen Sink'}),
+    makeOvenDevice('oven', {title: 'Oven'}),
     makeDoorDevice('garage_door', {title: 'Garage Door'}),
     makeWeatherDevice('weather_sensor', {title: 'Weather'})
 ])
 
 // some devices require a manual start
-// registry.get('weather_sensor').controller.handle({ key: 'start' })
+registry.get('weather_sensor').controller.handle({ key: 'start' })
 registry.get('hvac').controller.handle({ key: 'start' })
 
 
@@ -46,6 +50,7 @@ registry.events$.subscribe((deviceEvent: AggregateEvent) => {
         .catch(error => console.log('could not dispatch to node-red'))
 })
 
+
 // Accept commands via an HTTP API
 let port = 4000
 HTTPDigestModule(registry.handle).app
@@ -54,6 +59,7 @@ HTTPDigestModule(registry.handle).app
 
 // render entire engine state in a tabular format
 stateTable(registry).pipe(tap(clear), tap(console.table)).subscribe()
+
 
 // Publish the device created events
 registry.all().forEach(device => {

@@ -28,6 +28,8 @@ export const makeRegistry = (devices: IOTDevice[]): IOTDeviceRegistry => {
     let handle = (command: AggregateCommand) => new Promise((res, rej) => {
         if(!table[command.aggregate_id])
             return rej(`Unknown aggregate ${command.aggregate_id}`)
+        if(!command.payload)
+            command.payload = {}
         return table[command.aggregate_id].controller.handle(command)
             .then(res, rej)
     })

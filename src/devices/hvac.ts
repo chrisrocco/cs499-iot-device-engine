@@ -4,16 +4,19 @@ import {makeController} from "../core/controller/Controller";
 import {startStopControls} from "../core/controller/mixins";
 import {dispatch} from "../core/actions";
 
+
 const initialState = {
     cooling: false,
     heating: false,
 }
+
 
 const reducers = {
     'cool': () => ({ cooling: true, heating: false }),
     'heat': () => ({ heating: true, cooling: false }),
     'off': () => ({ cooling: false, heating: false })
 }
+
 
 export const makeHvacDevice = (id, meta = {}) => {
 
