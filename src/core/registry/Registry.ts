@@ -1,31 +1,38 @@
-import {IOTDevice, IOTDeviceRegistry, DeviceCreatedEvent} from "./types";
+import {IOTDevice, DeviceCreatedEvent} from "./types";
 import {AggregateCommand} from "../controller/types";
 import {AggregateEvent, AggregateStateEvent} from "../aggregate/types";
-import {Subject} from "rxjs";
+import {Observable, Subject} from "rxjs";
 import {connectAggregateEvents, connectAggregateState} from "./connectStreams";
 
 type DeviceTable = {
     [id: string]: IOTDevice
 }
 
-export const makeRegistry = (devices: IOTDevice[]): IOTDeviceRegistry => {
+export interface IIOTDeviceRegistry {
+    get: (id: string) => IOTDevice
+    all: () => IOTDevice[]
+    events$: Subject<AggregateEvent>
+    state$: Observable<AggregateStateEvent>
+    handle: (command: AggregateCommand) => Promise<any>
+    event: (event: AggregateEvent) => void
+    registerDevice: (device: IOTDevice) => void
+}
+
+
+export const makeRegistry = (): IIOTDeviceRegistry => {
 
     // Streams representing all of the device events and state
-    let events$ = new Subject<AggregateEvent>()
-    let state$ = new Subject<AggregateStateEvent>()
+    const events$ = new Subject<AggregateEvent>()
+    const state$ = new Subject<AggregateStateEvent>()
+    const table: DeviceTable = {}
 
-    // Compose the streams
-    devices.map(D => D.aggregate).forEach(connectAggregateEvents(events$))
-    devices.map(D => D.aggregate).forEach(connectAggregateState(state$))
-
-    // Lookup table for devices by ID
-    let table: DeviceTable = devices.reduce((table, device) => ({
-        ...table,
-        [device.aggregate.id]: device
-    }), {})
-
-    // Controller functions
-    let handle = (command: AggregateCommand) => new Promise((res, rej) => {
+    /**
+     * Dispatch a command to some IOTDevice
+     * within the registry
+     * ==========================================
+     * @param command
+     */
+    const handle = (command: AggregateCommand) => new Promise((res, rej) => {
         if(!table[command.aggregate_id])
             return rej(`Unknown aggregate ${command.aggregate_id}`)
         if(!command.payload)
@@ -34,12 +41,41 @@ export const makeRegistry = (devices: IOTDevice[]): IOTDeviceRegistry => {
             .then(res, rej)
     })
 
-    let event = (event: AggregateEvent) => {
+    /**
+     * Dispatches an event to a device in this registry.
+     * Performs device lookup, applying directly to aggregate.
+     * ==========================================================
+     * @param event
+     */
+    const event = (event: AggregateEvent) => {
         if(!table[event.aggregate_id])
             return
         table[event.aggregate_id].aggregate.events$.next(event)
     }
 
+
+    /**
+     * Adds a new device to this registry,
+     * emitting a device-created event
+     * =========================================
+     * @param device
+     */
+    const registerDevice = (device: IOTDevice) => {
+        connectAggregateEvents(events$)(device.aggregate)
+        connectAggregateState(state$)(device.aggregate)
+        table[device.aggregate.id] = device
+
+        let event: DeviceCreatedEvent = {
+            aggregate_id: device.aggregate.id,
+            key: 'created',
+            payload: {
+                id: device.aggregate.id,
+                meta: device.aggregate.meta,
+                state: device.aggregate.state$.value
+            }
+        }
+        events$.next(event)
+    }
 
     // Map state changes onto regular event stream
     // // Not sure if this is a good idea yet
@@ -55,6 +91,7 @@ export const makeRegistry = (devices: IOTDevice[]): IOTDeviceRegistry => {
         get: (id: string) => table[id],
         all: () => Object.values(table),
         handle,
-        event
+        event,
+        registerDevice
     }
 }

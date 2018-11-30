@@ -1,11 +1,11 @@
 import {Subject} from "rxjs"
 import express from 'express'
+import {IIOTDeviceRegistry} from "../registry/Registry";
+import {AggregateEvent} from "../aggregate/types";
+const axios = require('axios')
 
 
-const COMMANDS_ENDPOINT = '/device-commands'
-
-
-export const HTTPDigestModule = (handleCommand) => {
+export const HTTPDigestModule = (env) => (registry: IIOTDeviceRegistry) => {
 
     const commands$ = new Subject()
 
@@ -13,14 +13,27 @@ export const HTTPDigestModule = (handleCommand) => {
     app.use(express.json())
 
 
+    // Publish all events onto node-red flow
+    registry.events$.subscribe((deviceEvent: AggregateEvent) => {
+        axios.post(`${env.PUBLISH_COMMANDS_ENDPOINT}`, deviceEvent)
+            .then(reply => null)
+            .catch(error => console.log('could not dispatch to node-red'))
+    })
+
+
     // consume commands
-    app.post(COMMANDS_ENDPOINT, (req, res) => {
+    app.post('/device-commands', (req, res) => {
         let command = req.body
         commands$.next(req.body)
-        handleCommand(command)
+        registry.handle(command)
             .then(reply => res.json({reply}))
             .catch(error => res.status(400).json({error}))
     })
+
+
+    // Healthcheck Endpoint
+    app.get('/ping', (_, res) => res.send('pong'))
+
 
     // export the Express app
     return {
