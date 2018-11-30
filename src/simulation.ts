@@ -48,8 +48,10 @@ HTTPDigestModule(env)(registry)
     })
 
 
-// render entire engine state in a tabular format
-stateTable(registry).pipe(tap(clear), tap(console.table)).subscribe()
+if(env.NODE_ENV !== 'production') {
+    // render entire engine state in a tabular format
+    stateTable(registry).pipe(tap(clear), tap(console.table)).subscribe()
+}
 
 
 // Add all of the devices to the registry
