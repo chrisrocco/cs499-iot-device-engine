@@ -6,7 +6,7 @@ import {makeAggregate} from "../core/aggregate/Aggregate";
 const lodash = require('lodash')
 
 const initialState = {
-    outdoor_temp: -1,
+    outdoor_temp: 74,
     feels_like: ''
 }
 
@@ -14,7 +14,7 @@ const reducers = {
     'temp': (state, event) => {
         return {
             feels_like: (event.payload > 80)? 'hot' : (event.payload < 60) ? 'cold' : 'just right',
-            outdoor_temp: event.payload
+            outdoor_temp: state.outdoor_temp + event.payload
         }
     }
 }
@@ -24,7 +24,7 @@ export const makeWeatherDevice = (id, meta = {}): IOTDevice => {
     let aggregate = makeAggregate(initialState, reducers)(id, meta)
 
     let pm = makeProcessManager({
-        'main': () => dispatch(aggregate, 'temp', lodash.random(40, 100))
+        'main': () => dispatch(aggregate, 'temp', lodash.random(-4, 4))
     })
 
     let controller = makeController({

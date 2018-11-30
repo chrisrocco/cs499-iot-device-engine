@@ -52,7 +52,7 @@ registry.events$.subscribe((deviceEvent: AggregateEvent) => {
 
 
 // Accept commands via an HTTP API
-let port = 4000
+let port = env.PORT || 4000
 HTTPDigestModule(registry.handle).app
     .listen(port, () => console.log(`HTTP API running on port ${port}`))
 
