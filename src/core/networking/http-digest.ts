@@ -3,6 +3,7 @@ import express from 'express'
 import {IIOTDeviceRegistry} from "../registry/Registry";
 import {AggregateEvent} from "../aggregate/types";
 const axios = require('axios')
+const cors = require('cors')
 
 
 export const HTTPDigestModule = (env) => (registry: IIOTDeviceRegistry) => {
@@ -11,6 +12,7 @@ export const HTTPDigestModule = (env) => (registry: IIOTDeviceRegistry) => {
 
     const app = express()
     app.use(express.json())
+    app.use(cors())
 
 
     // Publish all events onto node-red flow
